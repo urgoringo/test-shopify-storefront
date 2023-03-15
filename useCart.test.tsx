@@ -92,3 +92,44 @@ test("when calling attributes update and lines remove then the latter is ignored
     expect(result.current.lines.length).toBe(0);
   });
 });
+
+test("when calling line remove and line add the latter is ignored", async () => {
+  const {result} = renderCart();
+
+  act(() => result.current.cartCreate({}));
+  await waitFor(() => {
+    expect(result.current.status).toBe("idle");
+  });
+  await act(() => {
+    result.current.linesAdd([
+      {
+        merchandiseId: "gid://shopify/ProductVariant/44671043141922",
+        quantity: 1,
+      },
+    ]);
+  });
+  await waitFor(() => {
+    expect(result.current.status).toBe("idle");
+  });
+  await act(() => {
+    result.current.linesRemove(result.current.lines.map((it) => it.id));
+    sleepUntil(() => {
+      console.log("Current status", result.current.status);
+      return result.current.status === "idle";
+    });
+    result.current.linesAdd([
+      {
+        merchandiseId: "gid://shopify/ProductVariant/44671043141922",
+        quantity: 20,
+      },
+    ]);
+  });
+  await waitFor(() => {
+    expect(result.current.status).toBe("idle");
+  });
+  await waitFor(() => {
+    expect(
+      result.current.totalQuantity
+    ).toBe(20);
+  });
+})
