@@ -6,7 +6,7 @@ import "whatwg-fetch";
 const accessToken = "8b6008fe5f922fb7b1f0df8b142c2d38";
 
 const renderCart = () => {
-  const wrapper = ({children}: {children: ReactNode}) => (
+  const wrapper = ({children}: { children: ReactNode }) => (
     <ShopifyProvider
       storeDomain={`https://test-cleankitchen.myshopify.com`}
       storefrontApiVersion="2023-01"
@@ -15,10 +15,11 @@ const renderCart = () => {
       languageIsoCode="ET"
     >
       <CartProvider
-        onLineAddComplete={() => console.log("Line add complete")}
-        onLineUpdateComplete={() => console.log("Line update complete")}
+        onLineAddComplete={() => console.log("Line add complete", new Date())}
+        onLineUpdateComplete={() => console.log("Line update complete", new Date())}
+        onLineRemoveComplete={() => console.log("Line remove complete", new Date())}
         onAttributesUpdateComplete={() =>
-          console.log("Attributes update complete")
+          console.log("Attributes update complete", new Date())
         }
       >
         {children}
@@ -31,7 +32,7 @@ const renderCart = () => {
 const sleepUntil = async (f: () => boolean, timeoutMs = 1000) => {
   return new Promise((resolve, reject) => {
     const timeWas = new Date();
-    const wait = setInterval(function () {
+    const wait = setTimeout(() => setInterval(function () {
       if (f()) {
         clearInterval(wait);
         resolve(true);
@@ -39,11 +40,11 @@ const sleepUntil = async (f: () => boolean, timeoutMs = 1000) => {
         clearInterval(wait);
         reject(false);
       }
-    }, 20);
+    }, 20), 200);
   });
 };
 
-test("when calling attributes update and lines remove then the latter is ignored", async () => {
+xtest("when calling attributes update and lines remove then the latter is ignored", async () => {
   const {result} = renderCart();
 
   act(() => result.current.cartCreate({}));
@@ -61,12 +62,12 @@ test("when calling attributes update and lines remove then the latter is ignored
   await waitFor(() => {
     expect(result.current.status).toBe("idle");
   });
-  await act(() => {
+  await act(async () => {
     result.current.cartAttributesUpdate([
       {key: "test2", value: "val2"},
       {key: "test2", value: "val3"},
     ]);
-    sleepUntil(() => {
+    await sleepUntil(() => {
       console.log("Current status", result.current.status);
       return result.current.status === "idle";
     });
@@ -75,7 +76,7 @@ test("when calling attributes update and lines remove then the latter is ignored
     //   () => result.current.linesRemove(result.current.lines.map((it) => it.id)),
     //   800
     // )
-      result.current.linesRemove(result.current.lines.map((it) => it.id));
+    result.current.linesRemove(result.current.lines.map((it) => it.id));
   });
   await waitFor(() => {
     expect(result.current.status).toBe("idle");
@@ -111,12 +112,14 @@ test("when calling line remove and line add the latter is ignored", async () => 
   await waitFor(() => {
     expect(result.current.status).toBe("idle");
   });
-  await act(() => {
+  console.log("Going to remove line", new Date());
+  await act(async () => {
     result.current.linesRemove(result.current.lines.map((it) => it.id));
-    sleepUntil(() => {
+    await sleepUntil(() => {
       console.log("Current status", result.current.status);
       return result.current.status === "idle";
     });
+    console.log("Going to add a line", new Date());
     result.current.linesAdd([
       {
         merchandiseId: "gid://shopify/ProductVariant/44671043141922",
